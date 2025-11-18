@@ -161,9 +161,29 @@ router.get('/stream/:id/:token', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.status(206);
         
+        let cleanedUp = false;
+        const cleanup = () => {
+          if (cleanedUp) return;
+          cleanedUp = true;
+          req.off ? req.off('aborted', abortHandler) : req.removeListener('aborted', abortHandler);
+          res.off ? res.off('close', abortHandler) : res.removeListener('close', abortHandler);
+        };
+
+        const abortHandler = () => {
+          if (!res.writableEnded && !readStream.destroyed) {
+            console.warn('Client disconnected before range stream completed. Destroying stream.');
+            readStream.destroy();
+          }
+          cleanup();
+        };
+
+        req.on('aborted', abortHandler);
+        res.on('close', abortHandler);
+
         // Handle stream events
         readStream.on('error', (error) => {
           console.error('GridFS stream error:', error);
+          cleanup();
           if (!res.headersSent) {
             res.status(500).json({ msg: 'Stream error' });
           } else {
@@ -173,13 +193,7 @@ router.get('/stream/:id/:token', async (req, res) => {
         
         readStream.on('end', () => {
           console.log(`Range stream completed: ${actualChunkSize} bytes sent`);
-        });
-        
-        // Handle client disconnect
-        req.on('close', () => {
-          if (!readStream.destroyed) {
-            readStream.destroy();
-          }
+          cleanup();
         });
         
         // Pipe stream to response (end: true ensures response closes when stream ends)
@@ -196,9 +210,29 @@ router.get('/stream/:id/:token', async (req, res) => {
         res.setHeader('Accept-Ranges', 'bytes');
         res.status(200);
         
+        let cleanedUp = false;
+        const cleanup = () => {
+          if (cleanedUp) return;
+          cleanedUp = true;
+          req.off ? req.off('aborted', abortHandler) : req.removeListener('aborted', abortHandler);
+          res.off ? res.off('close', abortHandler) : res.removeListener('close', abortHandler);
+        };
+
+        const abortHandler = () => {
+          if (!res.writableEnded && !readStream.destroyed) {
+            console.warn('Client disconnected before full stream completed. Destroying stream.');
+            readStream.destroy();
+          }
+          cleanup();
+        };
+
+        req.on('aborted', abortHandler);
+        res.on('close', abortHandler);
+
         // Handle stream events
         readStream.on('error', (error) => {
           console.error('GridFS stream error:', error);
+          cleanup();
           if (!res.headersSent) {
             res.status(500).json({ msg: 'Stream error' });
           } else {
@@ -208,13 +242,7 @@ router.get('/stream/:id/:token', async (req, res) => {
         
         readStream.on('end', () => {
           console.log(`Full stream completed: ${fileSize} bytes sent`);
-        });
-        
-        // Handle client disconnect
-        req.on('close', () => {
-          if (!readStream.destroyed) {
-            readStream.destroy();
-          }
+          cleanup();
         });
         
         // Pipe stream to response (end: true ensures response closes when stream ends)

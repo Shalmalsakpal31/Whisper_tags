@@ -21,5 +21,13 @@ module.exports = {
   // Legacy filesystem settings (no longer used for new uploads, kept for backwards compatibility)
   UPLOAD_PATH: process.env.UPLOAD_PATH || './uploads/audio',
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE) || 50000000, // 50MB
-  ALLOWED_AUDIO_TYPES: ['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg', 'audio/m4a', 'text/plain']
+  ALLOWED_AUDIO_TYPES: [
+    'audio/mpeg',
+    'audio/wav',
+    'audio/mp3',
+    'audio/ogg',
+    'audio/m4a',
+    'audio/amr',
+    'text/plain'
+  ]
 };
