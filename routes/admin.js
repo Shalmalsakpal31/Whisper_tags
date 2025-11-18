@@ -168,7 +168,12 @@ router.get('/clips/:id/share', authenticateAdmin, async (req, res) => {
       return res.status(404).json({ msg: 'Audio clip not found' });
     }
 
-    const shareLink = `${req.protocol}://${req.get('host')}/audio/${clip._id}`;
+    // Use configured frontend URL(s) for share links if available (e.g. Vercel domain)
+    const configuredOrigin = config.CLIENT_ORIGINS && config.CLIENT_ORIGINS.length
+      ? config.CLIENT_ORIGINS[0]
+      : `${req.protocol}://${req.get('host')}`;
+    const frontendBase = configuredOrigin.replace(/\/$/, '');
+    const shareLink = `${frontendBase}/audio/${clip._id}`;
     
     res.json({ shareLink });
   } catch (error) {

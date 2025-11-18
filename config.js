@@ -1,3 +1,11 @@
+const parseOrigins = (origins) => {
+  if (!origins) return [];
+  return origins
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+};
+
 module.exports = {
   PORT: process.env.PORT || 5000,
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/audio_website',
@@ -5,9 +13,10 @@ module.exports = {
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'admin123',
 
   // Backend CORS configuration
-  // In production (e.g. Vercel frontend), set CLIENT_ORIGIN to your deployed frontend URL
-  // Example: https://your-vercel-app.vercel.app
-  CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
+  // In production (e.g. Vercel frontend), set CLIENT_ORIGINS to a comma-separated list of allowed frontend URLs
+  // Example: https://your-vercel-app.vercel.app,https://your-preview.vercel.app
+  CLIENT_ORIGINS: parseOrigins(process.env.CLIENT_ORIGINS) || [],
+  DEFAULT_DEV_ORIGINS: ['http://localhost:3000'],
 
   // Legacy filesystem settings (no longer used for new uploads, kept for backwards compatibility)
   UPLOAD_PATH: process.env.UPLOAD_PATH || './uploads/audio',

@@ -26,12 +26,25 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // CORS configuration
-// In development: allow localhost:3000 (React dev server)
-// In production: allow the configured CLIENT_ORIGIN (e.g. your Vercel frontend URL)
+// - In development: allow localhost:3000 (React dev server)
+// - In production: allow the configured CLIENT_ORIGINS (comma-separated list)
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? (config.CLIENT_ORIGINS.length ? config.CLIENT_ORIGINS : [])
+  : config.DEFAULT_DEV_ORIGINS;
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? config.CLIENT_ORIGIN
-    : ['http://localhost:3000'],
+  origin: (origin, callback) => {
+    if (!origin) {
+      // Allow non-browser clients (e.g., curl, server-side requests)
+      return callback(null, true);
+    }
+
+    if (!allowedOrigins.length || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   credentials: true
 }));
 
