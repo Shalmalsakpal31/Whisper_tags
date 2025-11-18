@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 
 const config = require('./config');
 const adminRoutes = require('./routes/admin');
@@ -54,12 +55,27 @@ app.get('/api/test', (req, res) => {
 app.use('/api/admin', adminRoutes);
 app.use('/api/audio', audioRoutes);
 
-// Serve static files from React build in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
+// Serve static files from React build in production (only if the build exists)
+const clientBuildPath = path.join(__dirname, 'client', 'build');
+const hasClientBuild = fs.existsSync(clientBuildPath);
+
+if (process.env.NODE_ENV === 'production' && hasClientBuild) {
+  console.log('Serving React build from', clientBuildPath);
+  app.use(express.static(clientBuildPath));
   
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+} else if (process.env.NODE_ENV === 'production') {
+  console.log('Client build not found. Running in API-only mode.');
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ msg: 'Route not found' });
+    }
+    return res.status(404).json({ msg: 'Frontend is hosted separately.' });
   });
 } else {
   // In development, handle React routes by redirecting to React dev server
