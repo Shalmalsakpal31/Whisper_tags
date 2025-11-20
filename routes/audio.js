@@ -148,10 +148,20 @@ router.get('/stream/:id/:token', async (req, res) => {
         const actualEnd = Math.min(end, fileSize - 1);
         const actualChunkSize = (actualEnd - start) + 1;
         
-        console.log(`Adjusted range: ${start}-${actualEnd} (chunk size: ${actualChunkSize})`);
+        console.log(`Adjusted range: ${start}-${actualEnd} of ${fileSize} (chunk size: ${actualChunkSize})`);
         
         // Create read stream with range
-        const readStream = createReadStream(clip.gridFSFileId, { start, end: actualEnd });
+        // MongoDB GridFS openDownloadStream 'end' is exclusive (reads up to but not including that byte)
+        // So if we want bytes 0-675507, we pass end: 675508 (which reads 0-675507)
+        // actualEnd is the last byte we want (inclusive), so end should be actualEnd + 1
+        const streamEnd = Math.min(actualEnd + 1, fileSize);
+        
+        // Ensure streamEnd never exceeds fileSize
+        if (streamEnd > fileSize) {
+          console.error(`Stream end ${streamEnd} exceeds file size ${fileSize}, using fileSize`);
+        }
+        
+        const readStream = createReadStream(clip.gridFSFileId, { start, end: streamEnd });
         
         // Set headers
         res.setHeader('Content-Range', `bytes ${start}-${actualEnd}/${fileSize}`);
